@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -64,7 +65,6 @@ public class ROVER_03 {
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream(), true);
 			
-	
 			// Process all messages from server, wait until server requests Rover ID
 			// name - Return Rover Name to complete connection
 			while (true) {
@@ -77,7 +77,6 @@ public class ROVER_03 {
 				}
 			}
 	
-			
 			// ********* Rover logic setup *********
 			
 			String line = "";
@@ -91,7 +90,6 @@ public class ROVER_03 {
 			ArrayList<String> equipment = new ArrayList<String>();
 			equipment = getEquipment();
 			System.out.println(rovername + " equipment list results " + equipment + "\n");
-			
 			
 			// **** Request START_LOC Location from SwarmServer ****
 			out.println("START_LOC");
@@ -118,172 +116,8 @@ public class ROVER_03 {
 			}
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 			
-			
-
-			
-	
-	
-			boolean goingSouth = false;
-			boolean stuck = false; // just means it did not change locations between requests,
-									// could be velocity limit or obstruction etc.
-			boolean blocked = false;
-	
-			String[] cardinals = new String[4];
-			cardinals[0] = "N";
-			cardinals[1] = "E";
-			cardinals[2] = "S";
-			cardinals[3] = "W";
-	
-			String currentDir = cardinals[0];
-			Coord currentLoc = null;
-			Coord previousLoc = null;
-			int stepCount = 0;
-	
-
-			/**
-			 *  ####  Rover controller process loop  ####
-			 */
-			while (true) {
-	
-				
-				// **** Request Rover Location from SwarmServer ****
-				out.println("LOC");
-				line = in.readLine();
-	            if (line == null) {
-	            	System.out.println(rovername + " check connection to server");
-	            	line = "";
-	            }
-				if (line.startsWith("LOC")) {
-					// loc = line.substring(4);
-					currentLoc = extractLocationFromString(line);
-					
-				}
-				System.out.println(rovername + " currentLoc at start: " + currentLoc);
-				
-				// after getting location set previous equal current to be able to check for stuckness and blocked later
-				previousLoc = currentLoc;		
-				
-				
-
-				
-		
-	
-				// ***** do a SCAN *****
-
-				// gets the scanMap from the server based on the Rover current location
-				doScan(); 
-				// prints the scanMap to the Console output for debug purposes
-				scanMap.debugPrintMap();
-				
-		
-				
-				
-				// ***** get TIMER remaining *****
-				out.println("TIMER");
-				line = in.readLine();
-	            if (line == null) {
-	            	System.out.println(rovername + " check connection to server");
-	            	line = "";
-	            }
-				if (line.startsWith("TIMER")) {
-					String timeRemaining = line.substring(6);
-					System.out.println(rovername + " timeRemaining: " + timeRemaining);
-				}
-				
-				
-	
-				
-				// ***** MOVING *****
-				// try moving east 5 block if blocked
-				if (blocked) {
-					if(stepCount > 0){
-						out.println("MOVE E");
-						//System.out.println("ROVER_03 request move E");
-						stepCount -= 1;
-					}
-					else {
-						blocked = false;
-						//reverses direction after being blocked and side stepping
-						goingSouth = !goingSouth;
-					}
-					
-//					for (int i = 0; i < 5; i++) {
-//						out.println("MOVE E");
-//						//System.out.println("ROVER_03 request move E");
-//						Thread.sleep(300);
-//					}
-//					blocked = false;
-//					//reverses direction after being blocked
-//					goingSouth = !goingSouth;
-				} else {
-	
-					// pull the MapTile array out of the ScanMap object
-					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
-					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
-	
-					if (goingSouth) {
-						// check scanMap to see if path is blocked to the south
-						// (scanMap may be old data by now)
-						if (scanMapTiles[centerIndex][centerIndex +1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
-							blocked = true;
-							stepCount = 5;  //side stepping
-						} else {
-							// request to server to move
-							out.println("MOVE S");
-							//System.out.println("ROVER_03 request move S");
-						}
-						
-					} else {
-						// check scanMap to see if path is blocked to the north
-						// (scanMap may be old data by now)
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
-						
-						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
-							blocked = true;
-							stepCount = 5;  //side stepping
-						} else {
-							// request to server to move
-							out.println("MOVE N");
-							//System.out.println("ROVER_03 request move N");
-						}					
-					}
-				}
-	
-				// another call for current location
-				out.println("LOC");
-				line = in.readLine();
-				if(line == null){
-					System.out.println("ROVER_03 check connection to server");
-					line = "";
-				}
-				if (line.startsWith("LOC")) {
-					currentLoc = extractLocationFromString(line);
-					
-				}
-	
-	
-				// test for stuckness
-				stuck = currentLoc.equals(previousLoc);
-	
-				//System.out.println("ROVER_03 stuck test " + stuck);
-				System.out.println("ROVER_03 blocked test " + blocked);
-	
-				// TODO - logic to calculate where to move next
-	
-				
-				// this is the Rovers HeartBeat, it regulates how fast the Rover cycles through the control loop
-				Thread.sleep(sleepTime);
-				
-				System.out.println("ROVER_03 ------------ bottom process control --------------"); 
-			}
+			//movement logic?
+			moveAround(line);
 		
 		// This catch block closes the open socket connection to the server
 		} catch (Exception e) {
@@ -302,6 +136,185 @@ public class ROVER_03 {
 	} // END of Rover main control loop
 	
 	// ####################### Support Methods #############################
+	
+	public int getRandomIndex(int length){
+		Random random = new Random();
+		return random.nextInt(length);
+	}
+	
+	public int getReverseDirection(int index){
+		int newIndex = 0;
+		switch (index){
+			case 0:
+				newIndex = 2;
+				break;
+			case 1:
+				newIndex = 3;
+				break;
+			case 2:
+				newIndex = 0;
+				break;
+			case 3:
+				newIndex = 1;
+				break;
+		}
+		return newIndex;
+	}
+
+	public void moveAround(String line) throws Exception{
+
+		    boolean goingForward = true;
+			boolean stuck = false; // just means it did not change locations between requests,
+									// could be velocity limit or obstruction etc.
+			boolean blocked = false;
+	
+			String[] cardinals = new String[4];
+			cardinals[0] = "N";
+			cardinals[1] = "E";
+			cardinals[2] = "S";
+			cardinals[3] = "W";
+	
+			int currentDirection = getRandomIndex(cardinals.length);
+			Coord currentLoc = null;
+			Coord previousLoc = null;
+			int stepCount = 0;
+			int stuckCount = 0;
+	
+
+			/**
+			 *  ####  Rover controller process loop  ####
+			 */
+			while (true) {			
+				// **** Request Rover Location from SwarmServer ****
+				out.println("LOC");
+				line = in.readLine();
+	            if (line == null) {
+	            	System.out.println(rovername + " check connection to server");
+	            	line = "";
+	            }
+				if (line.startsWith("LOC")) {
+					// loc = line.substring(4);
+					currentLoc = extractLocationFromString(line);
+					
+				}
+				System.out.println(rovername + " currentLoc at start: " + currentLoc);
+				
+				// after getting location set previous equal current to be able to check for stuckness and blocked later
+				previousLoc = currentLoc;		
+				
+	
+				// ***** do a SCAN *****
+
+				// gets the scanMap from the server based on the Rover current location
+				doScan(); 
+				// prints the scanMap to the Console output for debug purposes
+				scanMap.debugPrintMap();
+				
+				// ***** get TIMER remaining *****
+				out.println("TIMER");
+				line = in.readLine();
+	            if (line == null) {
+	            	System.out.println(rovername + " check connection to server");
+	            	line = "";
+	            }
+				if (line.startsWith("TIMER")) {
+					String timeRemaining = line.substring(6);
+					System.out.println(rovername + " timeRemaining: " + timeRemaining);
+				}
+				
+				
+				// ***** MOVING *****
+				// try moving east 5 block if blocked
+				if (blocked) {
+					if(stepCount > 0){
+						//reverse direction
+						if(stepCount == 5){
+							System.out.println("REVERSING direction!");
+							currentDirection = getReverseDirection(currentDirection);
+							Thread.sleep(300);
+						}
+						out.println("MOVE " + cardinals[currentDirection]);
+						System.out.println("ROVER_03 request move " + cardinals[currentDirection]);
+						if(!stuck)
+							stepCount -= 1;
+					}
+					else {
+						blocked = false;
+						//get new random direction
+						currentDirection = getRandomIndex(cardinals.length);
+						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
+					}
+					
+//					for (int i = 0; i < 5; i++) {
+//						out.println("MOVE E");
+//						//System.out.println("ROVER_03 request move E");
+//						Thread.sleep(300);
+//					}
+//					blocked = false;
+//					//reverses direction after being blocked
+//					goingSouth = !goingSouth;
+				} else {
+	
+					// pull the MapTile array out of the ScanMap object
+					MapTile[][] scanMapTiles = scanMap.getScanMap();
+					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+	
+					
+						// check scanMap to see if path is blocked to the north
+						// (scanMap may be old data by now)
+						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
+						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
+						
+						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
+								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
+								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
+								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+							blocked = true;
+							stepCount = 5;  //side stepping
+						} else {
+							// request to server to move
+							out.println("MOVE " + cardinals[currentDirection]);
+							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
+						}					
+					
+				}
+	
+				// another call for current location
+				out.println("LOC");
+				line = in.readLine();
+				if(line == null){
+					System.out.println("ROVER_03 check connection to server");
+					line = "";
+				}
+				if (line.startsWith("LOC")) {
+					currentLoc = extractLocationFromString(line);
+					
+				}
+	
+	
+				// test for stuckness - if stuck for too long try switching positions
+				stuck = currentLoc.equals(previousLoc);
+				if(stuck)
+					stuckCount +=1;
+				else
+					stuckCount = 0;
+				if(stuckCount >= 10)
+					currentDirection = getRandomIndex(cardinals.length);
+				
+				//System.out.println("ROVER_03 stuck test " + stuck);
+				System.out.println("ROVER_03 blocked test " + blocked);
+	
+				// TODO - logic to calculate where to move next
+	
+				
+				// this is the Rovers HeartBeat, it regulates how fast the Rover cycles through the control loop
+				Thread.sleep(sleepTime);
+				
+				System.out.println("ROVER_03 ------------ bottom process control --------------"); 
+			}
+	}
+
 	
 	private void clearReadLineBuffer() throws IOException{
 		while(in.ready()){
