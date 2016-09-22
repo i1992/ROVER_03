@@ -21,4 +21,7 @@
 
 !*.txt
 
+# MAC HIDDEN FILES
+.DS_Store
+
 #but do ignore this file
