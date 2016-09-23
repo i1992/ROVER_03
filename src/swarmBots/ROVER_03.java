@@ -142,6 +142,25 @@ public class ROVER_03 {
 		return random.nextInt(length);
 	}
 	
+	public int headSouthEast(int dir) {
+		int newIndex = 0;
+		switch (dir) {
+			case 0:
+				newIndex = 1;
+				break;
+			case 1:
+				newIndex = 2;
+				break;
+			case 2:
+				newIndex = 1;
+				break;
+			case 3:
+				newIndex = 2;
+				break;
+		}
+		return newIndex;
+	}
+	
 	public int getReverseDirection(int index){
 		int newIndex = 0;
 		switch (index){
@@ -241,7 +260,10 @@ public class ROVER_03 {
 					else {
 						blocked = false;
 						//get new random direction
-						currentDirection = getRandomIndex(cardinals.length);
+						//currentDirection = getRandomIndex(cardinals.length);
+						
+						//test spiral movement
+						currentDirection = headSouthEast(currentDirection);
 						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
 					}
 					
