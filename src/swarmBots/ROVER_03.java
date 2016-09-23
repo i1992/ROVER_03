@@ -137,7 +137,7 @@ public class ROVER_03 {
 	
 	// ####################### Support Methods #############################
 	
-	public int getRandomIndex(int length){
+	public int getRandom(int length){
 		Random random = new Random();
 		return random.nextInt(length);
 	}
@@ -160,8 +160,8 @@ public class ROVER_03 {
 		}
 		return newIndex;
 	}
-	
-	public int getReverseDirection(int index){
+
+	public int getReverse(int index){
 		int newIndex = 0;
 		switch (index){
 			case 0:
@@ -180,6 +180,7 @@ public class ROVER_03 {
 		return newIndex;
 	}
 
+
 	public void moveAround(String line) throws Exception{
 
 		    boolean goingForward = true;
@@ -193,7 +194,7 @@ public class ROVER_03 {
 			cardinals[2] = "S";
 			cardinals[3] = "W";
 	
-			int currentDirection = getRandomIndex(cardinals.length);
+			int currentDirection = getRandom(cardinals.length);
 			Coord currentLoc = null;
 			Coord previousLoc = null;
 			int stepCount = 0;
@@ -249,7 +250,7 @@ public class ROVER_03 {
 						//reverse direction
 						if(stepCount == 5){
 							System.out.println("REVERSING direction!");
-							currentDirection = getReverseDirection(currentDirection);
+							currentDirection = getReverse(currentDirection);
 							Thread.sleep(300);
 						}
 						out.println("MOVE " + cardinals[currentDirection]);
@@ -260,12 +261,13 @@ public class ROVER_03 {
 					else {
 						blocked = false;
 						//get new random direction
-						//currentDirection = getRandomIndex(cardinals.length);
+						//currentDirection = getRandom(cardinals.length);
 						
 						//test spiral movement
-						currentDirection = headSouthEast(currentDirection);
+						//currentDirection = headSouthEast(currentDirection);
 						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
 					}
+
 					
 //					for (int i = 0; i < 5; i++) {
 //						out.println("MOVE E");
@@ -322,7 +324,7 @@ public class ROVER_03 {
 				else
 					stuckCount = 0;
 				if(stuckCount >= 10)
-					currentDirection = getRandomIndex(cardinals.length);
+					currentDirection = getRandom(cardinals.length);
 				
 				//System.out.println("ROVER_03 stuck test " + stuck);
 				System.out.println("ROVER_03 blocked test " + blocked);
