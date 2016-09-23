@@ -264,7 +264,7 @@ public class ROVER_03 {
 						//currentDirection = getRandom(cardinals.length);
 						
 						//test spiral movement
-						//currentDirection = headSouthEast(currentDirection);
+						currentDirection = headSouthEast(currentDirection);
 						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
 					}
 
