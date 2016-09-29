@@ -8,7 +8,9 @@ package rover_logic;
 //This class will be used to store key values for dStarLite
 public class Pair<T, U> implements Cloneable, java.io.Serializable {
 
-    /**
+	private static final long serialVersionUID = 1L;
+	
+	/**
      * One of the two values, for the declared type T.
      */
     private T object1;
