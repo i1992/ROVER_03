@@ -12,6 +12,12 @@ public class State implements Comparable<Object> {
 
 	public State() {
 	}
+	
+	public State(int x, int y, Pair<Double, Double> k){
+		this.coord = new Coord(x, y);
+		//this.data = data;
+		this.k = k;
+	}
 
 	public State(Coord coord, double data, Pair<Double, Double> k) {
 		this.coord = coord;
