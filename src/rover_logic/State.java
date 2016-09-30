@@ -1,13 +1,14 @@
 package rover_logic;
 
 import common.Coord;
+import common.MapTile;
 
 //this class also taken from //* https://github.com/daniel-beard/DStarLiteJava/
 //but slightly modified to fit rover game
 
 public class State implements Comparable<Object> {
 	private Coord coord;
-	private double data;
+	public MapTile mapTile;
 	private Pair<Double, Double> k = new Pair<Double, Double>(0.0, 0.0);
 
 	public State() {
@@ -19,15 +20,15 @@ public class State implements Comparable<Object> {
 		this.k = k;
 	}
 
-	public State(Coord coord, double data, Pair<Double, Double> k) {
+	public State(Coord coord, MapTile mt, Pair<Double, Double> k) {
 		this.coord = coord;
-		this.data = data;
+		this.mapTile = mt;
 		this.k = k;
 	}
 
 	public State(State other) {
 		this.coord = other.coord;
-		this.data = other.data;
+		this.mapTile = other.mapTile;
 		this.k = other.k;
 	}
 
@@ -99,12 +100,12 @@ public class State implements Comparable<Object> {
 		this.coord = coord;
 	}
 
-	public double getData() {
-		return data;
+	public MapTile getMapTile() {
+		return mapTile;
 	}
 
-	public void setData(double data) {
-		this.data = data;
+	public void setMapTile(MapTile mapTile) {
+		this.mapTile = mapTile;
 	}
 
 	public Pair<Double, Double> getK() {
@@ -143,7 +144,7 @@ public class State implements Comparable<Object> {
 
 	public String toString() {
 		String str = "";
-		str += "coord: " + coord + ", data: " + data;
+		str += "coord: " + coord;
 		return str;
 	}
 
