@@ -2,6 +2,9 @@ package rover_logic;
 
 import java.util.*;
 import common.Coord;
+import common.MapTile;
+import enums.RoverDriveType;
+import enums.Terrain;
 
 //*Original code implemented by Daniel Beard at
 //*https://github.com/daniel-beard/DStarLiteJava/blob/master/DStarLite.java
@@ -10,6 +13,8 @@ import common.Coord;
 
 public class DStarLite implements java.io.Serializable{
 
+	private static final long serialVersionUID = 1L;
+	
 	//Private Member variables
 	private List<State> path = new ArrayList<State>();
 	private double C1;
@@ -25,6 +30,9 @@ public class DStarLite implements java.io.Serializable{
 
 	//Constants
 	private double M_SQRT2 = Math.sqrt(2.0);
+
+	//Rover-Specific considerations
+	RoverDriveType rdt;
 
 	//Default constructor
 	public DStarLite()
@@ -535,7 +543,7 @@ public class DStarLite implements java.io.Serializable{
 	 * either the cost of moving off state a or onto state b, we went with the
 	 * former. This is also the 8-way cost.
 	 */
-	private double cost(State a, State b) //******************MODIFY COST TO 4-WAY AND ADD OBSTRUCTION OF TERRAIN*****************
+	private double cost(State a, State b)
 	{
 		int xd = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
 		int yd = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
@@ -545,6 +553,37 @@ public class DStarLite implements java.io.Serializable{
 
 		if (cellHash.containsKey(a)==false) return scale*C1; 
 		return scale*cellHash.get(a).cost;
+	}
+
+	//this method gives the cost of moving from state a to state b
+	private double calculateCost(State a, State b){ 
+		double accum = 0;
+		if(b == s_goal)
+			return accum;
+		//check  terrain type and wheel type, add 10,000 to cost if it's an obstacle, including if there's another rover there
+		if(isObstacle(b.mapTile))
+			accum += 10000;
+		else
+			accum ++;
+		return accum;
+	}
+
+	//true if there's an obstacle i.e another rover, wrong terrain type...
+	private boolean isObstacle(MapTile mt){
+		boolean obstacle = false;
+		if(mt.getHasRover()){
+			obstacle = true;
+		}else if(rdt == RoverDriveType.WHEELS){
+			if (mt.getTerrain() == Terrain.SAND || mt.getTerrain() == Terrain.ROCK)
+				obstacle = true;
+		}else if(rdt == RoverDriveType.TREADS){
+			if(mt.getTerrain() == Terrain.ROCK)
+				obstacle = true;
+		}else if(rdt == RoverDriveType.WALKER){
+			if(mt.getTerrain() == Terrain.SAND)
+				obstacle = true;
+		}
+		return obstacle;
 	}
 
 	/*
@@ -562,6 +601,7 @@ public class DStarLite implements java.io.Serializable{
 	}
 
 
+	
 	public static void main(String[] args)
 	{
 		DStarLite pf = new DStarLite();
