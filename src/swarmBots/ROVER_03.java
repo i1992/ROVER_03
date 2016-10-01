@@ -19,6 +19,10 @@ import common.MapTile;
 import common.ScanMap;
 import enums.Terrain;
 
+import rover_logic.SearchLogic;
+
+import enums.RoverDriveType;
+
 /**
  * The seed that this program is built on is a chat program example found here:
  * http://cs.lmu.edu/~ray/notes/javanetexamples/ Many thanks to the authors for
@@ -141,25 +145,6 @@ public class ROVER_03 {
 		Random random = new Random();
 		return random.nextInt(length);
 	}
-	
-	public int headSouthEast(int dir) {
-		int newIndex = 0;
-		switch (dir) {
-			case 0:
-				newIndex = 1;
-				break;
-			case 1:
-				newIndex = 2;
-				break;
-			case 2:
-				newIndex = 1;
-				break;
-			case 3:
-				newIndex = 2;
-				break;
-		}
-		return newIndex;
-	}
 
 	public int getReverse(int index){
 		int newIndex = 0;
@@ -244,65 +229,71 @@ public class ROVER_03 {
 				
 				
 				// ***** MOVING *****
+				
+				// Implement AStar from package rover_logic
+				MapTile[][] scanMapTiles = scanMap.getScanMap();
+				SearchLogic searchLogic = new SearchLogic();
+				List<String> moves = searchLogic.Astar(currentLoc, new Coord(25, 25), scanMapTiles, RoverDriveType.getEnum("WHEELS"), globalMap)
+				
+				//scanMap.debugPrintMap();
+				
 				// try moving east 5 block if blocked
-				if (blocked) {
-					if(stepCount > 0){
-						//reverse direction
-						if(stepCount == 5){
-							System.out.println("REVERSING direction!");
-							currentDirection = getReverse(currentDirection);
-							Thread.sleep(300);
-						}
-						out.println("MOVE " + cardinals[currentDirection]);
-						System.out.println("ROVER_03 request move " + cardinals[currentDirection]);
-						if(!stuck)
-							stepCount -= 1;
-					}
-					else {
-						blocked = false;
-						//get new random direction
-						//currentDirection = getRandom(cardinals.length);
-						
-						//test spiral movement
-						currentDirection = headSouthEast(currentDirection);
-						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
-					}
-
-					
-//					for (int i = 0; i < 5; i++) {
-//						out.println("MOVE E");
-//						//System.out.println("ROVER_03 request move E");
-//						Thread.sleep(300);
+//				if (blocked) {
+//					if(stepCount > 0){
+//						//reverse direction
+//						if(stepCount == 5){
+//							System.out.println("REVERSING direction!");
+//							currentDirection = getReverse(currentDirection);
+//							Thread.sleep(300);
+//						}
+//						out.println("MOVE " + cardinals[currentDirection]);
+//						System.out.println("ROVER_03 request move " + cardinals[currentDirection]);
+//						if(!stuck)
+//							stepCount -= 1;
 //					}
-//					blocked = false;
-//					//reverses direction after being blocked
-//					goingSouth = !goingSouth;
-				} else {
-	
-					// pull the MapTile array out of the ScanMap object
-					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
-					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
-	
-					
-						// check scanMap to see if path is blocked to the north
-						// (scanMap may be old data by now)
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
-						
-						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
-							blocked = true;
-							stepCount = 5;  //side stepping
-						} else {
-							// request to server to move
-							out.println("MOVE " + cardinals[currentDirection]);
-							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
-						}					
-					
-				}
+//					else {
+//						blocked = false;
+//						//get new random direction
+////						currentDirection = getRandom(cardinals.length);
+//						
+//						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
+//					}
+//
+//					
+////					for (int i = 0; i < 5; i++) {
+////						out.println("MOVE E");
+////						//System.out.println("ROVER_03 request move E");
+////						Thread.sleep(300);
+////					}
+////					blocked = false;
+////					//reverses direction after being blocked
+////					goingSouth = !goingSouth;
+//				} else {
+//	
+//					// pull the MapTile array out of the ScanMap object
+//					MapTile[][] scanMapTiles = scanMap.getScanMap();
+//					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+//					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+//	
+//					
+//						// check scanMap to see if path is blocked to the north
+//						// (scanMap may be old data by now)
+//						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
+//						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
+//						
+//						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+//							blocked = true;
+//							stepCount = 5;  //side stepping
+//						} else {
+//							// request to server to move
+//							out.println("MOVE " + cardinals[currentDirection]);
+//							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
+//						}					
+//					
+//				}
 	
 				// another call for current location
 				out.println("LOC");
