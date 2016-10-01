@@ -9,15 +9,19 @@ import java.util.List;
 // Sensors: RADIATION_SENSOR->Radioactivescience; CHEMICAL_SENSOR->Organic Science;
 //	SPECTRAL_SENSOR->Crystal Science; RADAR_SENSOR  ->mineral Science
 
+// Harvesting tools: EXCAVATOR->Soil and Sand;  DRILL->Rocks and Gravel
+
 public enum RoverName {
 	// (Drive type, accessory slot 1, accessory slot 2)
 	NONE,
 	
-	ROVER_01 ("WALKER", "DRILL", "SPECTRAL_SENSOR"),
-	ROVER_02 ("WALKER", "CHEMICAL_SENSOR", "RADIATION_SENSOR"),
-	ROVER_03 ("TREADS", "DRILL", "EXCAVATOR"),
-	ROVER_04 ("WALKER", "DRILL", "RADAR_SENSOR"),
-	ROVER_05 ("WHEELS", "RANGE_BOOTER", "SPECTRAL_SENSOR"),
+	ROVER_01 ("TREADS", "EXCAVATOR", "SPECTRAL_SENSOR"),
+	ROVER_02 ("WALKER", "EXCAVATOR", "DRILL"),
+	ROVER_03 ("WHEELS", "EXCAVATOR", "CHEMICAL_SENSOR"),
+	ROVER_04 ("WALKER", "DRILL", "RADIATION_SENSOR"),
+	ROVER_05 ("TREADS", "EXCAVATOR", "RADAR_SENSOR"),
+
+    //not currently being used
 	ROVER_06 ("WHEELS", "RANGE_BOOTER", "RADIATION_SENSOR"),
 	ROVER_07 ("TREADS", "EXCAVATOR", "RADAR_SENSOR"),
 	ROVER_08 ("TREADS", "EXCAVATOR", "SPECTRAL_SENSOR"),
@@ -31,13 +35,19 @@ public enum RoverName {
 	ROVER_16 ("WALKER", "DRILL", "RADIATION_SENSOR"),
 	ROVER_17 ("WHEELS", "RANGE_BOOTER", "RADAR_SENSOR"),
 	ROVER_18 ("WHEELS", "EXCAVATOR", "RADAR_SENSOR"),
-	
-	//not currently being used
 	ROVER_19 ("NONE", "NONE", "NONE"),
 	ROVER_20 ("NONE", "NONE", "NONE"),
 	
 	// sample test rovers
 	ROVER_00 ("WHEELS", "RADIATION_SENSOR", "RADAR_SENSOR"),
+	ROVER_90 ("WHEELS", "RANGE_BOOTER", "RADIATION_SENSOR"),
+	ROVER_91 ("WALKER", "DRILL", "EXCAVATOR"),
+	ROVER_92 ("WHEELS", "RANGE_BOOTER", "SPECTRAL_SENSOR"),
+	ROVER_93 ("TREADS", "EXCAVATOR", "CHEMICAL_SENSOR"),
+	ROVER_94 ("WHEELS", "RANGE_BOOTER", "CHEMICAL_SENSOR"),
+	ROVER_95 ("TREADS", "DRILL", "EXCAVATOR"),
+	ROVER_96 ("WALKER", "DRILL", "RADIATION_SENSOR"),
+	ROVER_97 ("WHEELS", "RANGE_BOOTER", "RADAR_SENSOR"),
 	ROVER_98 ("WALKER", "DRILL", "SPECTRAL_SENSOR"),
 	ROVER_99 ("TREADS", "SPECTRAL_SENSOR", "CHEMICAL_SENSOR");
 	
@@ -118,6 +128,31 @@ public enum RoverName {
     		output = RoverName.ROVER_20;
     		break;
     	
+    	// Sample Rover Set
+    	case "ROVER_90":
+    		output = RoverName.ROVER_90;
+    		break;
+    	case "ROVER_91":
+    		output = RoverName.ROVER_91;
+    		break;
+    	case "ROVER_92":
+    		output = RoverName.ROVER_92;
+    		break;    		
+    	case "ROVER_93":
+    		output = RoverName.ROVER_93;
+    		break;
+    	case "ROVER_94":
+    		output = RoverName.ROVER_94;
+    		break;
+    	case "ROVER_95":
+    		output = RoverName.ROVER_95;
+    		break;
+    	case "ROVER_96":
+    		output = RoverName.ROVER_96;
+    		break;
+    	case "ROVER_97":
+    		output = RoverName.ROVER_97;
+    		break;
     	case "ROVER_98":
     		output = RoverName.ROVER_98;
     		break;
