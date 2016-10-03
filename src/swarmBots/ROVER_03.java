@@ -7,26 +7,35 @@ import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import common.Communication;
 import common.Coord;
 import common.MapTile;
 import common.ScanMap;
 import enums.Terrain;
 
 import rover_logic.SearchLogic;
-
+import supportTools.CommunicationHelper;
 import enums.RoverDriveType;
+import enums.Science;
 
 /**
- * The seed that this program is built on is a chat program example found here:
- * http://cs.lmu.edu/~ray/notes/javanetexamples/ Many thanks to the authors for
- * publishing their code examples
+ * ROVER_03
+ * Assigned Equipment: WHEEL, HARVESTER, ORGANIC SCANNER
+ * Rover can travel over soil and gravel, but cannot travel through rock. 
+ * Will get stuck in sand, so its movement must avoid sand terrain.
+ * Because it cannot traverse sand, its harvester can only be used to extract from soil.
  */
 
 public class ROVER_03 {
@@ -38,6 +47,8 @@ public class ROVER_03 {
 	int sleepTime;
 	String SERVER_ADDRESS = "localhost";
 	static final int PORT_ADDRESS = 9537;
+	public static Map<Coord, MapTile> globalMap;
+	List<Coord> destinations;	//list of coordinates with identified science
 
 	public ROVER_03() {
 		// constructor
@@ -46,6 +57,7 @@ public class ROVER_03 {
 		SERVER_ADDRESS = "localhost";
 		// this should be a safe but slow timer value
 		sleepTime = 300; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
+		globalMap = new HashMap<>();
 	}
 	
 	public ROVER_03(String serverAddress) {
@@ -54,6 +66,7 @@ public class ROVER_03 {
 		rovername = "ROVER_03";
 		SERVER_ADDRESS = serverAddress;
 		sleepTime = 200; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
+		globalMap = new HashMap<>();
 	}
 
 	/**
@@ -120,7 +133,6 @@ public class ROVER_03 {
 			}
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 			
-			//movement logic?
 			moveAround(line);
 		
 		// This catch block closes the open socket connection to the server
@@ -146,24 +158,24 @@ public class ROVER_03 {
 		return random.nextInt(length);
 	}
 
-	public int getReverse(int index){
-		int newIndex = 0;
-		switch (index){
-			case 0:
-				newIndex = 2;
-				break;
-			case 1:
-				newIndex = 3;
-				break;
-			case 2:
-				newIndex = 0;
-				break;
-			case 3:
-				newIndex = 1;
-				break;
-		}
-		return newIndex;
-	}
+//	public int getReverse(int index){
+//		int newIndex = 0;
+//		switch (index){
+//			case 0:
+//				newIndex = 2;
+//				break;
+//			case 1:
+//				newIndex = 3;
+//				break;
+//			case 2:
+//				newIndex = 0;
+//				break;
+//			case 3:
+//				newIndex = 1;
+//				break;
+//		}
+//		return newIndex;
+//	}
 
 
 	public void moveAround(String line) throws Exception{
@@ -198,9 +210,7 @@ public class ROVER_03 {
 	            	line = "";
 	            }
 				if (line.startsWith("LOC")) {
-					// loc = line.substring(4);
-					currentLoc = extractLocationFromString(line);
-					
+					currentLoc = extractLocationFromString(line);				
 				}
 				System.out.println(rovername + " currentLoc at start: " + currentLoc);
 				
@@ -210,10 +220,12 @@ public class ROVER_03 {
 	
 				// ***** do a SCAN *****
 
-				// gets the scanMap from the server based on the Rover current location
-				doScan(); 
-				// prints the scanMap to the Console output for debug purposes
+				// Based on the Rover current location, get the scanMap from the server
+				this.doScan(); 
+				System.out.println("ROVER_03 is Scanning");
 				scanMap.debugPrintMap();
+				// Update the global map.
+				updateglobalMap(currentLoc, scanMap.getScanMap());
 				
 				// ***** get TIMER remaining *****
 				out.println("TIMER");
@@ -227,74 +239,27 @@ public class ROVER_03 {
 					System.out.println(rovername + " timeRemaining: " + timeRemaining);
 				}
 				
+				// ***** define Communication *****
+				String url = "http://localhost:3000/api";
+		        String corp_secret = "gz5YhL70a2";
+
+		        Communication com = new Communication(url, rovername, corp_secret);
 				
 				// ***** MOVING *****
 				
-				// Implement AStar from package rover_logic
 				MapTile[][] scanMapTiles = scanMap.getScanMap();
 				SearchLogic searchLogic = new SearchLogic();
-				List<String> moves = searchLogic.Astar(currentLoc, new Coord(25, 25), scanMapTiles, RoverDriveType.getEnum("WHEELS"), globalMap)
 				
-				//scanMap.debugPrintMap();
+				// ***** Implement AStar from package rover_logic, SearchLogic.java *****
+				List<String> moves = searchLogic.Astar(currentLoc, new Coord(25, 25), scanMapTiles, RoverDriveType.getEnum("WHEELS"), globalMap);
 				
-				// try moving east 5 block if blocked
-//				if (blocked) {
-//					if(stepCount > 0){
-//						//reverse direction
-//						if(stepCount == 5){
-//							System.out.println("REVERSING direction!");
-//							currentDirection = getReverse(currentDirection);
-//							Thread.sleep(300);
-//						}
-//						out.println("MOVE " + cardinals[currentDirection]);
-//						System.out.println("ROVER_03 request move " + cardinals[currentDirection]);
-//						if(!stuck)
-//							stepCount -= 1;
-//					}
-//					else {
-//						blocked = false;
-//						//get new random direction
-////						currentDirection = getRandom(cardinals.length);
-//						
-//						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
-//					}
-//
-//					
-////					for (int i = 0; i < 5; i++) {
-////						out.println("MOVE E");
-////						//System.out.println("ROVER_03 request move E");
-////						Thread.sleep(300);
-////					}
-////					blocked = false;
-////					//reverses direction after being blocked
-////					goingSouth = !goingSouth;
-//				} else {
-//	
-//					// pull the MapTile array out of the ScanMap object
-//					MapTile[][] scanMapTiles = scanMap.getScanMap();
-//					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
-//					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
-//	
-//					
-//						// check scanMap to see if path is blocked to the north
-//						// (scanMap may be old data by now)
-//						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
-//						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
-//						
-//						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
-//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
-//							blocked = true;
-//							stepCount = 5;  //side stepping
-//						} else {
-//							// request to server to move
-//							out.println("MOVE " + cardinals[currentDirection]);
-//							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
-//						}					
-//					
-//				}
-	
+				// Try first three moves before implementing Astar again on next loop
+				if (!moves.isEmpty()) {
+					for (int i = 0; i < 3; i++) {
+						out.println("MOVE " + moves.get(i));
+					}
+				}
+				
 				// another call for current location
 				out.println("LOC");
 				line = in.readLine();
@@ -304,30 +269,25 @@ public class ROVER_03 {
 				}
 				if (line.startsWith("LOC")) {
 					currentLoc = extractLocationFromString(line);
-					
 				}
 	
-	
-				// test for stuckness - if stuck for too long try switching positions
-				stuck = currentLoc.equals(previousLoc);
-				if(stuck)
-					stuckCount +=1;
-				else
-					stuckCount = 0;
-				if(stuckCount >= 10)
-					currentDirection = getRandom(cardinals.length);
+//				// test for stuckness - if stuck for too long try switching to random position
+//				stuck = currentLoc.equals(previousLoc);
+//				if(stuck)
+//					stuckCount +=1;
+//				else
+//					stuckCount = 0;
+//				if(stuckCount >= 10)
+//					currentDirection = getRandom(cardinals.length);
 				
 				//System.out.println("ROVER_03 stuck test " + stuck);
-				System.out.println("ROVER_03 blocked test " + blocked);
-	
-				// TODO - logic to calculate where to move next
-	
-				
+				//System.out.println("ROVER_03 blocked test " + blocked);
+		
 				// this is the Rovers HeartBeat, it regulates how fast the Rover cycles through the control loop
 				Thread.sleep(sleepTime);
 				
 				System.out.println("ROVER_03 ------------ bottom process control --------------"); 
-			}
+			} //end while(true) loop
 	}
 
 	
@@ -438,6 +398,55 @@ public class ROVER_03 {
 		return null;
 	}
 	
+	// ########### Update Global Map ############
+	// ***updateglobaMap methods credit to ROVER_11***
+	
+	// Update global map with scan info from current location
+	private void updateglobalMap(Coord currentLoc, MapTile[][] scanMapTiles) {
+        int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
+
+        for (int row = 0; row < scanMapTiles.length; row++) {
+            for (int col = 0; col < scanMapTiles[row].length; col++) {
+
+                MapTile mapTile = scanMapTiles[col][row];
+
+                int xp = currentLoc.xpos - centerIndex + col;
+                int yp = currentLoc.ypos - centerIndex + row;
+                Coord coord = new Coord(xp, yp);
+                globalMap.put(coord, mapTile);
+            }
+        }
+        // put my current position so it is walkable
+        MapTile currentMapTile = scanMapTiles[centerIndex][centerIndex].getCopyOfMapTile();
+        currentMapTile.setHasRoverFalse();
+        globalMap.put(currentLoc, currentMapTile);
+    }
+	// Get data from server and update global map
+    private void updateglobalMap(JSONArray data) {
+
+        for (Object o : data) {
+
+            JSONObject jsonObj = (JSONObject) o;
+            boolean marked = (jsonObj.get("g") != null) ? true : false;
+            int x = (int) (long) jsonObj.get("x");
+            int y = (int) (long) jsonObj.get("y");
+            Coord coord = new Coord(x, y);
+
+            // If rover's globalMap doesn't contain the coordinate, then save 
+            if (!globalMap.containsKey(coord)) {
+                MapTile tile = CommunicationHelper.convertToMapTile(jsonObj);
+                globalMap.put(coord, tile);
+                
+                // If tile has science AND it's not sand terrain
+                if (tile.getScience() != Science.NONE && tile.getTerrain() != Terrain.SAND) {
+
+                    // Then add tile to the destination list
+                    if (!destinations.contains(coord) && !marked)
+                        destinations.add(coord);
+                }              
+            }
+        }
+    }
 
 	/**
 	 * Runs the client
