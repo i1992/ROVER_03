@@ -63,15 +63,17 @@ public class DStarLite implements java.io.Serializable{
 		s_start.setCoord(start);
 		s_goal.setCoord(goal);
 
+		//rhs, g, and cost to goal should all be low, or zero
 		CellInfo tmp = new CellInfo();
 		tmp.g   = 0;
 		tmp.rhs = 0;
 		tmp.cost = C1;
-
+		//add it to hash table
 		cellHash.put(s_goal, tmp);
-
+		//the start of cell's cost and rhs value will be manhattan distance to goal. 
+		//Recall, algorithm finds cell path...backwards, i.e heuristic costs should decrease moving forward. 
 		tmp = new CellInfo();
-		tmp.g = tmp.rhs = heuristic(s_start,s_goal);
+		tmp.g = tmp.rhs = heuristicManhattan(s_start,s_goal);
 		tmp.cost = C1;
 		cellHash.put(s_start, tmp);
 		s_start = calculateKey(s_start);
@@ -88,7 +90,7 @@ public class DStarLite implements java.io.Serializable{
 	{
 		double val = Math.min(getRHS(u), getG(u));
 
-		u.getK().setFirst (val + heuristic(u,s_start) + k_m);
+		u.getK().setFirst (val + heuristicManhattan(u,s_start) + k_m);  
 		u.getK().setSecond(val); //tie breaker when choosing nodes/states
 
 		return u;
@@ -103,7 +105,7 @@ public class DStarLite implements java.io.Serializable{
 
 		//if the cellHash doesn't contain the State u
 		if (cellHash.get(u) == null)
-			return heuristic(u, s_goal);
+			return heuristicManhattan(u, s_goal);
 		return cellHash.get(u).rhs;
 	}
 
@@ -112,9 +114,9 @@ public class DStarLite implements java.io.Serializable{
 	 */
 	private double getG(State u)
 	{
-		//if the cellHash doesn't contain the State u
+		//if the cellHash doesn't contain the State u, use Manhattan distance
 		if (cellHash.get(u) == null)
-			return heuristic(u,s_goal);
+			return heuristicManhattan(u,s_goal);
 		return cellHash.get(u).g;
 	}
 
@@ -122,10 +124,10 @@ public class DStarLite implements java.io.Serializable{
 	 * Pretty self explanatory, the heuristic we use is the 8-way distance
 	 * scaled by a constant C1 (should be set to <= min cost)
 	 */
-	private double heuristic(State a, State b)
-	{
-		return eightCondist(a,b)*C1;
-	}
+//	private double heuristic(State a, State b)
+//	{
+//		return eightCondist(a,b)*C1;
+//	}
 	
 	//better for four way grids system
 	private double heuristicManhattan(State a, State b){
@@ -136,20 +138,20 @@ public class DStarLite implements java.io.Serializable{
 	/*
 	 * Returns the 8-way distance between state a and state b
 	 */
-	private double eightCondist(State a, State b)
-	{
-		double temp;
-		double min = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
-		double max = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
-		if (min > max)
-		{
-			temp = min;
-			min = max;
-			max = temp;
-		}
-		return ((M_SQRT2-1.0)*min + max);
-
-	}
+//	private double eightCondist(State a, State b)
+//	{
+//		double temp;
+//		double min = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
+//		double max = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
+//		if (min > max)
+//		{
+//			temp = min;
+//			min = max;
+//			max = temp;
+//		}
+//		return ((M_SQRT2-1.0)*min + max);
+//
+//	}
 	
 
 	public boolean replan()
@@ -190,7 +192,7 @@ public class DStarLite implements java.io.Serializable{
 
 			for (State i : n)
 			{
-				double val  = cost(cur, i);
+				double val  = calculateCost(cur, i); //Changed cost here to account for obstacles
 				double val2 = trueDist(i,s_goal) + trueDist(s_start, i);
 				val += getG(i);
 
@@ -389,9 +391,9 @@ public class DStarLite implements java.io.Serializable{
 		tmp.cost = C1;
 
 		cellHash.put(s_goal, tmp);
-
+		//* Double check new cell here, should actual costs be evaluated?
 		tmp = new CellInfo();
-		tmp.g = tmp.rhs = heuristic(s_start, s_goal);
+		tmp.g = tmp.rhs = heuristicManhattan(s_start, s_goal);
 		tmp.cost = C1;
 		cellHash.put(s_start, tmp);
 		s_start = calculateKey(s_start);
@@ -420,7 +422,7 @@ public class DStarLite implements java.io.Serializable{
 			double tmp2;
 
 			for (State i : s) {
-				tmp2 = getG(i) + cost(u,i);
+				tmp2 = getG(i) + calculateCost(u,i); //cost now takes into account obstacles. 
 				if (tmp2 < tmp) tmp = tmp2;
 			}
 			if (!close(getRHS(u),tmp)) setRHS(u,tmp);
@@ -460,12 +462,13 @@ public class DStarLite implements java.io.Serializable{
 
 	/*
 	 * Checks if a cell is in the hash table, if not it adds it in.
+	 * all new cells have temporary C1 costs and Manhattan g/heuristic values. 
 	 */
 	private void makeNewCell(State u)
 	{
 		if (cellHash.get(u) != null) return;
 		CellInfo tmp = new CellInfo();
-		tmp.g = tmp.rhs = heuristic(u,s_goal);
+		tmp.g = tmp.rhs = heuristicManhattan(u,s_goal);
 		tmp.cost = C1;
 		cellHash.put(u, tmp);
 	}
@@ -543,17 +546,17 @@ public class DStarLite implements java.io.Serializable{
 	 * either the cost of moving off state a or onto state b, we went with the
 	 * former. This is also the 8-way cost.
 	 */
-	private double cost(State a, State b)
-	{
-		int xd = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
-		int yd = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
-		double scale = 1;
-
-		if (xd+yd > 1) scale = M_SQRT2;
-
-		if (cellHash.containsKey(a)==false) return scale*C1; 
-		return scale*cellHash.get(a).cost;
-	}
+//	private double cost(State a, State b)
+//	{
+//		int xd = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
+//		int yd = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
+//		double scale = 1;
+//
+//		if (xd+yd > 1) scale = M_SQRT2;
+//
+//		if (cellHash.containsKey(a)==false) return scale*C1; 
+//		return scale*cellHash.get(a).cost;
+//	}
 
 	//this method gives the cost of moving from state a to state b
 	private double calculateCost(State a, State b){ 
