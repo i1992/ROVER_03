@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import com.google.gson.Gson;
@@ -17,7 +18,9 @@ import com.google.gson.reflect.TypeToken;
 import common.Coord;
 import common.MapTile;
 import common.ScanMap;
+import enums.RoverDriveType;
 import enums.Terrain;
+import rover_logic.DStarLite;
 
 /**
  * The seed that this program is built on is a chat program example found here:
@@ -34,6 +37,13 @@ public class ROVER_03 {
 	int sleepTime;
 	String SERVER_ADDRESS = "localhost";
 	static final int PORT_ADDRESS = 9537;
+	//Keep personal map when traversing - upload for each movement
+	public static Map<Coord, MapTile> globalMap;
+	String cardinals[] = {"N", "E", "S", "W"};
+	List<String>equipment;
+	//Rover has it's own logic class
+	public static DStarLite dsl;
+	
 
 	public ROVER_03() {
 		// constructor
@@ -87,7 +97,7 @@ public class ROVER_03 {
 			 *  Get initial values that won't change
 			 */
 			// **** get equipment listing ****			
-			ArrayList<String> equipment = new ArrayList<String>();
+			equipment = new ArrayList<String>();
 			equipment = getEquipment();
 			System.out.println(rovername + " equipment list results " + equipment + "\n");
 			
@@ -117,7 +127,7 @@ public class ROVER_03 {
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 			
 			//movement logic?
-			moveAround(line);
+			move(line, rovergroupStartPosition, targetLocation);
 		
 		// This catch block closes the open socket connection to the server
 		} catch (Exception e) {
@@ -142,57 +152,13 @@ public class ROVER_03 {
 		return random.nextInt(length);
 	}
 	
-	public int headSouthEast(int dir) {
-		int newIndex = 0;
-		switch (dir) {
-			case 0:
-				newIndex = 1;
-				break;
-			case 1:
-				newIndex = 2;
-				break;
-			case 2:
-				newIndex = 1;
-				break;
-			case 3:
-				newIndex = 2;
-				break;
-		}
-		return newIndex;
-	}
+	public void move(String line, Coord start, Coord target) throws Exception{
 
-	public int getReverse(int index){
-		int newIndex = 0;
-		switch (index){
-			case 0:
-				newIndex = 2;
-				break;
-			case 1:
-				newIndex = 3;
-				break;
-			case 2:
-				newIndex = 0;
-				break;
-			case 3:
-				newIndex = 1;
-				break;
-		}
-		return newIndex;
-	}
-
-
-	public void moveAround(String line) throws Exception{
-
-		    boolean goingForward = true;
-			boolean stuck = false; // just means it did not change locations between requests,
-									// could be velocity limit or obstruction etc.
-			boolean blocked = false;
-	
-			String[] cardinals = new String[4];
-			cardinals[0] = "N";
-			cardinals[1] = "E";
-			cardinals[2] = "S";
-			cardinals[3] = "W";
+			dsl = new DStarLite(RoverDriveType.getEnum(equipment.get(0)));
+			dsl.init(start, target);
+		    //boolean goingForward = true;
+			boolean stuck = false; // just means it did not change locations between requests,						
+			boolean blocked = false;// could be velocity limit or obstruction etc.
 	
 			int currentDirection = getRandom(cardinals.length);
 			Coord currentLoc = null;
@@ -200,7 +166,6 @@ public class ROVER_03 {
 			int stepCount = 0;
 			int stuckCount = 0;
 	
-
 			/**
 			 *  ####  Rover controller process loop  ####
 			 */
@@ -218,13 +183,11 @@ public class ROVER_03 {
 					
 				}
 				System.out.println(rovername + " currentLoc at start: " + currentLoc);
-				
 				// after getting location set previous equal current to be able to check for stuckness and blocked later
 				previousLoc = currentLoc;		
 				
 	
 				// ***** do a SCAN *****
-
 				// gets the scanMap from the server based on the Rover current location
 				doScan(); 
 				// prints the scanMap to the Console output for debug purposes
@@ -250,7 +213,7 @@ public class ROVER_03 {
 						//reverse direction
 						if(stepCount == 5){
 							System.out.println("REVERSING direction!");
-							currentDirection = getReverse(currentDirection);
+							currentDirection = getRandom(currentDirection);
 							Thread.sleep(300);
 						}
 						out.println("MOVE " + cardinals[currentDirection]);
@@ -264,31 +227,17 @@ public class ROVER_03 {
 						//currentDirection = getRandom(cardinals.length);
 						
 						//test spiral movement
-						currentDirection = headSouthEast(currentDirection);
+						currentDirection = getRandom(currentDirection);
 						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
 					}
 
-					
-//					for (int i = 0; i < 5; i++) {
-//						out.println("MOVE E");
-//						//System.out.println("ROVER_03 request move E");
-//						Thread.sleep(300);
-//					}
-//					blocked = false;
-//					//reverses direction after being blocked
-//					goingSouth = !goingSouth;
 				} else {
 	
 					// pull the MapTile array out of the ScanMap object
 					MapTile[][] scanMapTiles = scanMap.getScanMap();
 					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
 					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
-	
-					
-						// check scanMap to see if path is blocked to the north
-						// (scanMap may be old data by now)
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getHasRover() " + scanMapTiles[2][1].getHasRover());
-						//System.out.println("ROVER_03 scanMapTiles[2][1].getTerrain() " + scanMapTiles[2][1].getTerrain().toString());
+
 						
 						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
 								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
