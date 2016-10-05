@@ -124,12 +124,13 @@ public class DStarLite implements java.io.Serializable{
 	 * Pretty self explanatory, the heuristic we use is the 8-way distance
 	 * scaled by a constant C1 (should be set to <= min cost)
 	 */
-//	private double heuristic(State a, State b)
-//	{
-//		return eightCondist(a,b)*C1;
-//	}
+	@SuppressWarnings("unused")
+	private double heuristic(State a, State b)
+	{
+		return eightCondist(a,b)*C1;
+	}
 	
-	//better for four way grids system
+	//better for four way graph system
 	private double heuristicManhattan(State a, State b){
 		double h = Math.abs(a.getCoord().xpos - b.getCoord().xpos) + Math.abs(a.getCoord().ypos - b.getCoord().ypos);
 		return h;
@@ -138,26 +139,27 @@ public class DStarLite implements java.io.Serializable{
 	/*
 	 * Returns the 8-way distance between state a and state b
 	 */
-//	private double eightCondist(State a, State b)
-//	{
-//		double temp;
-//		double min = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
-//		double max = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
-//		if (min > max)
-//		{
-//			temp = min;
-//			min = max;
-//			max = temp;
-//		}
-//		return ((M_SQRT2-1.0)*min + max);
-//
-//	}
+
+	private double eightCondist(State a, State b)
+	{
+		double temp;
+		double min = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
+		double max = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
+		if (min > max)
+		{
+			temp = min;
+			min = max;
+			max = temp;
+		}
+		return ((M_SQRT2-1.0)*min + max);
+
+	}
 	
 
 	public boolean replan()
 	{
 		path.clear();
-
+		//like A* - finds the shortest path using priority queue - returns -1 if no path/exceeds max steps
 		int res = computeShortestPath();
 		if (res < 0)
 		{
@@ -231,7 +233,7 @@ public class DStarLite implements java.io.Serializable{
 		int k=0;
 		while ((!openList.isEmpty()) &&
 			   (openList.peek().lt(s_start = calculateKey(s_start))) ||
-			   (getRHS(s_start) != getG(s_start))) {
+			   (getRHS(s_start) != getG(s_start))) {//inconsistent state
 
 			if (k++ > maxSteps) {
 				System.out.println("At maxsteps");
@@ -239,7 +241,7 @@ public class DStarLite implements java.io.Serializable{
 			}
 
 			State u;
-
+			//check state for inconsistency, a consistent state (no changes) --> g == rhs
 			boolean test = (getRHS(s_start) != getG(s_start));
 
 			//lazy remove
@@ -248,6 +250,7 @@ public class DStarLite implements java.io.Serializable{
 				u = openList.poll();
 
 				if (!isValid(u)) continue;
+				//if u key is less than current node, and its consistent
 				if (!(u.lt(s_start)) && (!test)) return 2;
 				break;
 			}
@@ -433,7 +436,7 @@ public class DStarLite implements java.io.Serializable{
 
 	/*
 	 * Returns true if state u is on the open list or not by checking if
-	 * it is in the hash table.
+	 * it is in the hash table. -uses close, shouldn't be more than .00001 difference
 	 */
 	private boolean isValid(State u)
 	{
