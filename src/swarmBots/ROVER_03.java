@@ -182,11 +182,11 @@ public class ROVER_03 {
 					currentLoc = extractLocationFromString(line);
 					
 				}
+				dsl.updateStart(currentLoc);
 				System.out.println(rovername + " currentLoc at start: " + currentLoc);
 				// after getting location set previous equal current to be able to check for stuckness and blocked later
 				previousLoc = currentLoc;		
 				
-	
 				// ***** do a SCAN *****
 				// gets the scanMap from the server based on the Rover current location
 				doScan(); 
@@ -194,64 +194,33 @@ public class ROVER_03 {
 				scanMap.debugPrintMap();
 				
 				// ***** get TIMER remaining *****
-				out.println("TIMER");
-				line = in.readLine();
-	            if (line == null) {
-	            	System.out.println(rovername + " check connection to server");
-	            	line = "";
-	            }
-				if (line.startsWith("TIMER")) {
-					String timeRemaining = line.substring(6);
-					System.out.println(rovername + " timeRemaining: " + timeRemaining);
-				}
-				
+				checkTime(line);
 				
 				// ***** MOVING *****
-				// try moving east 5 block if blocked
-				if (blocked) {
-					if(stepCount > 0){
-						//reverse direction
-						if(stepCount == 5){
-							System.out.println("REVERSING direction!");
-							currentDirection = getRandom(currentDirection);
-							Thread.sleep(300);
-						}
-						out.println("MOVE " + cardinals[currentDirection]);
-						System.out.println("ROVER_03 request move " + cardinals[currentDirection]);
-						if(!stuck)
-							stepCount -= 1;
-					}
-					else {
-						blocked = false;
-						//get new random direction
-						//currentDirection = getRandom(cardinals.length);
-						
-						//test spiral movement
-						currentDirection = getRandom(currentDirection);
-						System.out.println("after blocked, new direction is " + cardinals[currentDirection]);
-					}
-
-				} else {
-	
-					// pull the MapTile array out of the ScanMap object
-					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
-					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+				MapTile[][] scanMapTiles = scanMap.getScanMap();
+				//update/add new mapTiles to dsl hashMaps
+				System.out.println("Updting tiles");
+				updateScannedStates(scanMapTiles, currentLoc);
+				//Thread.sleep(300);
+				//find path from current node to goal
+				dsl.replan();
+				//TODO: Get path and move to new location
+				//TODO: create methods to find cardinals from path...
 
 						
-						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
-							blocked = true;
-							stepCount = 5;  //side stepping
-						} else {
-							// request to server to move
-							out.println("MOVE " + cardinals[currentDirection]);
-							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
-						}					
+//						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+//							blocked = true;
+//							stepCount = 5;  //side stepping
+//						} else {
+//							// request to server to move
+//							out.println("MOVE " + cardinals[currentDirection]);
+//							System.out.println("ROVER_03 request move forward  " + cardinals[currentDirection]);
+//						}					
 					
-				}
+				
 	
 				// another call for current location
 				out.println("LOC");
@@ -394,6 +363,54 @@ public class ROVER_03 {
 			return new Coord(Integer.parseInt(xStr), Integer.parseInt(yStr));
 		}
 		return null;
+	}
+	
+	public void checkTime(String line) throws IOException{
+		out.println("TIMER");
+		line = in.readLine();
+        if (line == null) {
+        	System.out.println(rovername + " check connection to server");
+        	line = "";
+        }
+		if (line.startsWith("TIMER")) {
+			String timeRemaining = line.substring(6);
+			System.out.println(rovername + " timeRemaining: " + timeRemaining);
+		}
+	}
+	
+	/*
+	 * This method feeds maptils from scan to DStarLite object for updating states/nodes
+	 * have to find coordinates for each tile, given that the center is current location
+	 */
+	public void updateScannedStates(MapTile[][] tiles, Coord current){
+		int centerRow = (tiles.length-1)/2;
+		int centerCol = (tiles[0].length - 1)/2;
+		//System.out.println("rows: " + tiles.length + " cols: " + tiles[0].length + " centers: " + centerRow);
+		for(int row = 0; row < tiles.length; row ++){
+			for( int col = 0; col < tiles[0].length; col++){
+					int xPos = findCoordinate(col, current.xpos, centerCol);
+					int yPos = findCoordinate(row, current.ypos, centerRow);
+					Coord newCoord = new Coord(xPos, yPos);
+					//updateCell also adds new cells if they're not already in tables
+					if(newCoord.equals(current))
+						continue;
+					dsl.updateCell(newCoord, tiles[col][row]);
+			}
+		}
+		System.out.println();
+	}
+	
+	public int findCoordinate(int n, int pivot, int centerIndex ){
+		int pos;
+		int diff = Math.abs(n - centerIndex);
+		if(n > centerIndex)
+			pos = pivot + diff;
+		else if(n < centerIndex)
+			pos = pivot - diff;
+		else
+			pos = pivot;
+		//System.out.println("Calculated position: " + pos);
+		return pos;
 	}
 	
 
