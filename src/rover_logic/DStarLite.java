@@ -18,6 +18,7 @@ public class DStarLite implements java.io.Serializable{
 	//Private Member variables
 	private List<State> path = new ArrayList<State>();
 	private double C1;
+	private final int OBSTACLE_COST = -1;
 	private double k_m;
 	private State s_start = new State();
 	private State s_goal  = new State();
@@ -37,8 +38,14 @@ public class DStarLite implements java.io.Serializable{
 	//Default constructor
 	public DStarLite()
 	{
-		maxSteps	= 80000;
-		C1			= 1;
+		maxSteps	= 80000; //how many steps to update the map with
+		C1			= 1; //cost constant
+	}
+	
+	public DStarLite(RoverDriveType rdt){
+		maxSteps = 80000;
+		C1 = 1;
+		this.rdt = rdt;
 	}
 
 	//Calculate Keys
@@ -490,6 +497,22 @@ public class DStarLite implements java.io.Serializable{
 		cellHash.get(u).cost = val;
 		updateVertex(u);
 	}
+	
+	/*
+	 * updateCell, given a mapTile to calculate new cost
+	 */
+	public void updateCell(Coord cellCoordinate, MapTile mt){
+		State u = new State();
+		u.setCoord(cellCoordinate);
+		//don't update start or target cell?
+		if ((u.eq(s_start)) || (u.eq(s_goal))) return;
+		
+		makeNewCell(u);
+		if(isObstacle(mt))
+			cellHash.get(u).cost = OBSTACLE_COST;
+		else
+			cellHash.get(u).cost = C1;
+	}
 
 	/*
 	 * Inserts state u into openList and openHash
@@ -549,17 +572,18 @@ public class DStarLite implements java.io.Serializable{
 	 * either the cost of moving off state a or onto state b, we went with the
 	 * former. This is also the 8-way cost.
 	 */
-//	private double cost(State a, State b)
-//	{
-//		int xd = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
-//		int yd = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
-//		double scale = 1;
-//
-//		if (xd+yd > 1) scale = M_SQRT2;
-//
-//		if (cellHash.containsKey(a)==false) return scale*C1; 
-//		return scale*cellHash.get(a).cost;
-//	}
+	@SuppressWarnings("unused")
+	private double cost(State a, State b)
+	{
+		int xd = Math.abs(a.getCoord().xpos - b.getCoord().xpos);
+		int yd = Math.abs(a.getCoord().ypos - b.getCoord().ypos);
+		double scale = 1;
+
+		if (xd+yd > 1) scale = M_SQRT2;
+
+		if (cellHash.containsKey(a)==false) return scale*C1; 
+		return scale*cellHash.get(a).cost;
+	}
 
 	//this method gives the cost of moving from state a to state b
 	private double calculateCost(State a, State b){ 
@@ -567,10 +591,10 @@ public class DStarLite implements java.io.Serializable{
 		if(b == s_goal)
 			return accum;
 		//check  terrain type and wheel type, add 10,000 to cost if it's an obstacle, including if there's another rover there
-		if(isObstacle(b.mapTile))
-			accum += 10000;
-		else
-			accum ++;
+		if(isObstacle(b.mapTile)){
+			accum = OBSTACLE_COST;
+		}else
+			accum += C1;
 		return accum;
 	}
 
@@ -639,6 +663,8 @@ public class DStarLite implements java.io.Serializable{
 
 class CellInfo implements java.io.Serializable
 {
+	private static final long serialVersionUID = 1L;
+	
 	public double g=0;
 	public double rhs=0;
 	public double cost=0;
