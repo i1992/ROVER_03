@@ -56,7 +56,7 @@ public class ROVER_03 {
 		rovername = "ROVER_03";
 		SERVER_ADDRESS = "localhost";
 		// this should be a safe but slow timer value
-		sleepTime = 300; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
+		sleepTime = 400; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
 		globalMap = new HashMap<>();
 	}
 	
@@ -65,7 +65,7 @@ public class ROVER_03 {
 		System.out.println("ROVER_03 rover object constructed");
 		rovername = "ROVER_03";
 		SERVER_ADDRESS = serverAddress;
-		sleepTime = 200; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
+		sleepTime = 400; // in milliseconds - smaller is faster, but the server will cut connection if it is too small
 		globalMap = new HashMap<>();
 	}
 
@@ -158,26 +158,6 @@ public class ROVER_03 {
 		return random.nextInt(length);
 	}
 
-//	public int getReverse(int index){
-//		int newIndex = 0;
-//		switch (index){
-//			case 0:
-//				newIndex = 2;
-//				break;
-//			case 1:
-//				newIndex = 3;
-//				break;
-//			case 2:
-//				newIndex = 0;
-//				break;
-//			case 3:
-//				newIndex = 1;
-//				break;
-//		}
-//		return newIndex;
-//	}
-
-
 	public void moveAround(String line) throws Exception{
 
 		    boolean goingForward = true;
@@ -224,8 +204,9 @@ public class ROVER_03 {
 				this.doScan(); 
 				System.out.println("ROVER_03 is Scanning");
 				scanMap.debugPrintMap();
+				MapTile[][] scanMapTiles = scanMap.getScanMap();
 				// Update the global map.
-				updateglobalMap(currentLoc, scanMap.getScanMap());
+				updateglobalMap(currentLoc, scanMapTiles);
 				
 				// ***** get TIMER remaining *****
 				out.println("TIMER");
@@ -246,18 +227,18 @@ public class ROVER_03 {
 		        Communication com = new Communication(url, rovername, corp_secret);
 				
 				// ***** MOVING *****
-				
-				MapTile[][] scanMapTiles = scanMap.getScanMap();
-				SearchLogic searchLogic = new SearchLogic();
-				
+
 				// ***** Implement AStar from package rover_logic, SearchLogic.java *****
-				List<String> moves = searchLogic.Astar(currentLoc, new Coord(25, 25), scanMapTiles, RoverDriveType.getEnum("WHEELS"), globalMap);
+				SearchLogic searchLogic = new SearchLogic();
+				Coord destinationLoc = new Coord(38, 40);
+				List<String> moves = searchLogic.Astar(currentLoc, destinationLoc, scanMapTiles, RoverDriveType.getEnum("WHEELS"), globalMap);
 				
 				// Try first three moves before implementing Astar again on next loop
 				if (!moves.isEmpty()) {
 					for (int i = 0; i < 3; i++) {
 						out.println("MOVE " + moves.get(i));
 					}
+					System.out.println("ROVER_03 using astar.");
 				}
 				
 				// another call for current location
@@ -270,18 +251,6 @@ public class ROVER_03 {
 				if (line.startsWith("LOC")) {
 					currentLoc = extractLocationFromString(line);
 				}
-	
-//				// test for stuckness - if stuck for too long try switching to random position
-//				stuck = currentLoc.equals(previousLoc);
-//				if(stuck)
-//					stuckCount +=1;
-//				else
-//					stuckCount = 0;
-//				if(stuckCount >= 10)
-//					currentDirection = getRandom(cardinals.length);
-				
-				//System.out.println("ROVER_03 stuck test " + stuck);
-				//System.out.println("ROVER_03 blocked test " + blocked);
 		
 				// this is the Rovers HeartBeat, it regulates how fast the Rover cycles through the control loop
 				Thread.sleep(sleepTime);

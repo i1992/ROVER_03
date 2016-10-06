@@ -17,64 +17,71 @@ import enums.Terrain;
 
 /**
  * Created by samskim on 5/12/16.
+ * Modified by MKwon on 10/5/16.
  */
 public class SearchLogic {
     // ******* Search Methods
 
     public List<String> Astar(Coord current, Coord dest, MapTile[][] scanMapTiles, RoverDriveType drive, Map<Coord, MapTile> globalMap) {
-        PriorityQueue<Node> open = new PriorityQueue<>();
-        Set<Node> closed = new HashSet<>();
+        PriorityQueue<Node> open = new PriorityQueue<>();	// open:   The set of Nodes to be evaluated
+        Set<Node> closed = new HashSet<>();					// closed: The set of Nodes already evaluated
 
         // for back tracing
         Map<Node, Double> distanceMemory = new HashMap<>();
         Map<Node, Node> parentMemory = new LinkedHashMap<>();
 
-        open.add(new Node(current, 0));
-        Node destNode = new Node(dest, 0);
+        open.add(new Node(current, 0));		// Add start coordinate as a Node object to Open list
+        Node destNode = new Node(dest, 0);	// Destination Node
 
-        // while there is a node to check in open list
-        Node u = null;
+        // While the Open list is not empty
+        Node node = null;
         while (!open.isEmpty()) {
 
-            u = open.poll(); // poll the closest one
-            closed.add(u); // put it in closed list, to not check anymore
+            node = open.poll(); 	// Poll the closest node to evaluate
 
-            // if u is destination, break;
-            if (u.getCoord().equals(dest)) {
-                destNode = u;
+            // If the current node IS the destination, break
+            if (node.getCoord().equals(dest)) {
+                destNode = node;
                 break;
             }
 
-            for (Coord c : getAdjacentCoordinates(u.getCoord(), scanMapTiles, current)) {
-                // if this node hasn't already been checked
-                if (!closed.contains(new Node(c, 0)) && globalMap.get(c) != null && validateTile(globalMap.get(c), drive)) {
+            // Loop through adjacent coordinates of current Node
+            for (Coord coord : getAdjacentCoordinates(node.getCoord(), scanMapTiles, current)) {
+                // Check 3 conditions: 
+            	// 1) Has node already been visited? (is it in the closed list)
+            	// 2) Does the coordinate exist on the global map?
+            	// 3) Can the rover travel on this terrain?
+                if (!closed.contains(new Node(coord, 0)) && globalMap.get(coord) != null && validateTile(globalMap.get(coord), drive)) {
 
-                    // TODO: MAYBE: assess cost depending on the tile's terrain, science, etc
-                    double g = u.getData() + 1; // each move cost is 1, for now
-                    double h = getDistance(c, dest); // distance from neighbor to destination
-                    double f = h + g; // total heuristic of this neighbor c
-                    Node n = new Node(c, f);
+                    // TODO: Add movement costs
+                	// gCost: The distance from the starting node
+                	// hCost: The distance from the end node
+                	// fCost: Sum of gCost and hCost. The total heuristic of this neighbor coordinate.
+                    double gCost = node.getData() + 1; // each move cost is 1, for now
+                    double hCost = getDistance(coord, dest);
+                    double fCost = hCost + gCost;
+                    Node n = new Node(coord, fCost);	//Initialize new Node with the fCost heuristic data
 
                     // for back tracing, store in hashmap
                     if (distanceMemory.containsKey(n)) {
 
                         // if distance of this neighboring node is less than memory, update
                         // else, leave as it is
-                        if (distanceMemory.get(n) > f) {
-                            distanceMemory.put(n, f);
+                        if (distanceMemory.get(n) > fCost) {
+                            distanceMemory.put(n, fCost);
                             open.remove(n);  // also update from open list
                             open.add(n);
-                            parentMemory.put(n, u); // add in parent
+                            parentMemory.put(n, node); // add in parent
                         }
 
 
                     } else {
                         // if this neighbor node is new, then add to memory
-                        distanceMemory.put(n, f);
-                        parentMemory.put(n, u);
+                        distanceMemory.put(n, fCost);
+                        parentMemory.put(n, node);
                         open.add(n);
                     }
-
+                closed.add(node); 		// ***Put the Node into closed list, since it was evaluated
                 }
 
             }
@@ -132,7 +139,7 @@ public class SearchLogic {
         return moves;
     }
 
-    // to check neighbors for heuristics
+    // Returns list of adjacent coordinates
     public List<Coord> getAdjacentCoordinates(Coord coord, MapTile[][] scanMapTiles, Coord current) {
         List<Coord> list = new ArrayList<>();
 
@@ -162,7 +169,6 @@ public class SearchLogic {
     }
 
     public boolean validateTile(MapTile maptile, RoverDriveType drive) {
-//        System.out.println("hasrover: " + maptile.getHasRover() + ", terrain: " + maptile.getTerrain());
         Terrain terrain = maptile.getTerrain();
         boolean hasRover = maptile.getHasRover();
 
