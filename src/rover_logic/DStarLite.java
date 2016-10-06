@@ -507,6 +507,7 @@ public class DStarLite implements java.io.Serializable {
 	public void updateCell(Coord cellCoordinate, MapTile mt) {
 		State u = new State();
 		u.setCoord(cellCoordinate);
+		u.setMapTile(mt);
 		// don't update start or target cell?
 		if ((u.eq(s_start)) || (u.eq(s_goal)))
 			return;
@@ -605,6 +606,10 @@ public class DStarLite implements java.io.Serializable {
 	// true if there's an obstacle i.e another rover, wrong terrain type...
 	private boolean isObstacle(MapTile mt) {
 		boolean obstacle = false;
+		//TODO: double check this
+		if(mt == null)
+			return false;
+		
 		if (mt.getHasRover()) {
 			obstacle = true;
 		} else if (rdt == RoverDriveType.WHEELS) {
